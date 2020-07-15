@@ -1,5 +1,5 @@
 /**
- * A small command line editor to demonstrate the math.js parser.
+ * A small command line editor
  * @param {Object} params    Configuration parameter. Available:
  *                           {HTMLElement} container DOM Element to contain
  *                                                   the editor

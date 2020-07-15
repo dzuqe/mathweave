@@ -12,33 +12,21 @@
       <a href="/">Home</a>
       <a href="/history.html" class="selected">History</a>
       <a href="/feed.html">Feed</a>
+      (🧽<a style="cursor: pointer; text-decoration: underline"  onClick="clearSession()">clear session</a>)
+      <br/>
+      <div id="update"></div>
       <div id="message">
         <h1>History<i>(latest 50)</i></h1>
       </div>
       <div id="history"></div>
     </div>
     <script src="https://unpkg.com/arweave/bundles/web.bundle.js"></script>
+    <script src="js/utils.js"></script>
     <script>
       if (localStorage.getItem("address")!== null) {
         const address = localStorage.getItem('address');
 
-        function replUIFactory(txid, data) {
-          const element = `
-            <a href="https://viewblock.io/arweave/tx/${txid}" target="_blank">${txid}</a>
-            <div id="commandline">
-              <div class="cle">
-                <div class="top-panel">
-                  <div class='results'>${data}</div>
-                </div>
-              </div>
-            </div>
-          `;
-
-          return element;
-        }
-
         (async () => {
-        
           const arweave = Arweave.init({
             host: "arweave.net",
             port: 443,
@@ -46,7 +34,6 @@
             timeout: 20000,
             logging: false
           });
-
 
           const txids = await arweave.arql({
             op: "and",
@@ -70,14 +57,21 @@
               .transactions
               .getData(txid, {decode: true, string: true})
               .then((data) => {
-                document.getElementById('history').innerHTML += replUIFactory(txid, data);
+                document
+                  .getElementById('history')
+                  .innerHTML += replUIFactory(
+                    txid, 
+                    data, 
+                    encodeData(data), 
+                    document.getElementById('update')
+                  );
+
               });
           }
 
         })();
 
       } else {
-        console.log('no wallet!');
         document.getElementById('message').innerHTML = '<h1>You need to upload your keyfile first.'
       }
     </script>

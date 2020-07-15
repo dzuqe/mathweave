@@ -12,6 +12,9 @@
       <a href="/" class="selected">Home</a>
       <a href="/history.html">History</a>
       <a href="/feed.html">Feed</a>
+      (🧽<a style="cursor: pointer; text-decoration: underline"  onClick="clearSession(document.getElementById('update'))">clear session</a>)
+      <br/>
+      <div id="update"></div>
       <div class="right">
         <div class="header" style="position: relative">
           <h1 style="padding: 0; margin:0; width: 20%; float:left">MathWeave</h1>
@@ -84,15 +87,11 @@
 
       // arweave get wallet and save to localStorage
       async function getWalletAddress(keyFileData) {
+        localStorage.setItem('key', keyFileData);
         var wallet_file = await JSON.parse(keyFileData);
         arweave.wallets.jwkToAddress(wallet_file).then((address) => {
           document.getElementById('address').innerHTML = address;
-          if (typeof(Storage) !== 'undefined') {
-            localStorage.setItem('address', address);
-            localStorage.setItem('key', keyFileData);
-          } else {
-            console.log('Web Storage is not supported!');
-          }
+          localStorage.setItem('address', address);
         });
       }
 
