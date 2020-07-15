@@ -2,19 +2,23 @@
 <html>
   <head>
     <title>MathWeave</title>
-    <link rel="stylesheet" href="css/style.css">
-    <link rel="stylesheet" href="css/code.css">
-    <link rel="stylesheet" href="css/commandline.css">
+    <link rel="stylesheet" href="/css/style.css">
+    <link rel="stylesheet" href="/css/code.css">
+    <link rel="stylesheet" href="/css/commandline.css">
     <meta charset="utf-8" />
   </head>
   <body>
     <div id="page">
-      <a href="/" class="selected">Home</a>
-      <a href="/history.html">History</a>
-      <a href="/feed.html">Feed</a>
+
+      <a  style="cursor: pointer; text-decoration: underline" id="home-link"   onclick="router('home')" class="selected">Home</a>
+      <a   style="cursor: pointer; text-decoration: underline"  id="history-link" onclick="router('history')">History</a>
+      <a   style="cursor: pointer; text-decoration: underline"  id="feed-link" onclick="router('feed')">Feed</a>
+
       (🧽<a style="cursor: pointer; text-decoration: underline"  onClick="clearSession(document.getElementById('update'))">clear session</a>)
       <br/>
       <div id="update"></div>
+
+      <div id="home-page">
       <div class="right">
         <div class="header" style="position: relative">
           <h1 style="padding: 0; margin:0; width: 20%; float:left">MathWeave</h1>
@@ -33,6 +37,7 @@
             <li>Press <b>S</b> to set focus to the input field</li>
             <li>Press <b>Ctrl+F11</b> to toggle full screen</li>
             <li>Enter <b>"clear"</b> to clear history</li>
+            <li>Enter <b>"load"</b> to load expressions in session</li>
           </ul>
         </div>
         <div id="message">
@@ -42,82 +47,234 @@
           <button class="eval" id="save">Save results</button>
         </div>
       </div>
+
+      </div>
+      <div id="feed-page">
+        <div id="message">
+          <h1>Feed <i>(latest 50)</i></h1>
+        </div>
+        <div id="feed-page-data"></div>
+      </div>
+      <div id="history-page">
+        <div id="message">
+          <h1>History <i>(latest 50)</i></h1>
+        </div>
+        <div id="history-page-data"></div>
+      </div>
     </div>
-    <script src="js/es5-shim.min.js" type="text/javascript"></script>
-    <script src="js/es5-sham.min.js" type="text/javascript"></script>
-    <script src="https://unpkg.com/browse/mathjs@7.1.0/dist/math.js" type="text/javascript"></script>
-    <script src="js/math.js"></script>
-    <script src="js/commandline.js"></script>
+    <script src="/js/es5-shim.min.js" type="text/javascript"></script>
+    <script src="/js/es5-sham.min.js" type="text/javascript"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/mathjs/7.1.0/math.min.js" type="text/javascript"></script>
+    <script src="/js/commandline.js"></script>
+    <script src="/js/utils.js"></script>
     <script src="https://unpkg.com/arweave/bundles/web.bundle.js"></script>
     <script>
-      const arweave = Arweave.init({
-        host: 'arweave.net',
-        port: 443,
-        protocol: 'https',
-        timeout: 20000,
-        logging: false
-      });
 
-      if (localStorage.getItem('address')!== null) {
-        document.getElementById('address').innerHTML = localStorage.getItem('address');
-        document.getElementById('buttons').style.display = 'grid';
+      console.log(window.location.hash);
+
+      const pages = ['home','feed','history'];
+
+      if (window.location.hash === '') {
+        router('home');
+      } else {
+        var route = window.location.hash;
+        route = route.replace('#','');
+        router(route);
       }
 
-      // arweave save data
-      async function saveReplData() {
-        var key = await JSON.parse(localStorage.getItem('key'));
-        var data = document.querySelector('.results').innerHTML || 'nothing to see here';
-        let transaction = await arweave.createTransaction({
-          data: data,
-        }, key);
+      function router(route) {
+        route = route.replace('#','');
+        console.log(route);
+        window.location.hash = route;
 
-        transaction.addTag('arweaveapp', 'arweavemathrepl');
+        pages.forEach((elem) => {
+          document.getElementById(elem + '-page').style.display = 'none';
+          document.getElementById(elem + '-link').className = '';
 
-        await arweave.transactions.sign(transaction, key);
-        const response = await arweave.transactions.post(transaction);
-
-        console.log(response.status);
-        if (response.status === 200) {
-          document.getElementById('message').innerHTML = '<h1>Successfully saved your <span><a href="/history.html">data</a></span></h1>';
-          setInterval(function(){
-            document.getElementById('message').innerHTML = '';
-          }, 20000);
-        }
-        document.querySelector('.results').innerHTML = ''
-      }
-
-      // arweave get wallet and save to localStorage
-      async function getWalletAddress(keyFileData) {
-        localStorage.setItem('key', keyFileData);
-        var wallet_file = await JSON.parse(keyFileData);
-        arweave.wallets.jwkToAddress(wallet_file).then((address) => {
-          document.getElementById('address').innerHTML = address;
-          localStorage.setItem('address', address);
         });
+
+        document.getElementById(route + '-page').style.display = 'block';
+        document.getElementById(route + '-link').className = 'selected';
+
+
+
+        switch(route) {
+          case 'feed':
+            const load = async () => {
+              const arweave = Arweave.init({
+                host: 'arweave.net',
+                port: 443,
+                protocol: 'https',
+                timeout: 20000,
+                logging: false
+              });
+
+              const txids = await arweave.arql({
+                op: 'equals',
+                expr1: 'arweaveapp',
+                expr2: 'arweavemathrepl',
+              });
+
+              const max = (txids.length >= 50) ? 50 : txids.length;
+              for (var i = 0; i < max; i++) {
+                const txid = txids[i];
+
+                arweave
+                  .transactions
+                  .getData(txid, {decode: true, string: true})
+                  .then((data) => {
+                    document
+                      .getElementById('feed-page-data')
+                      .innerHTML += replUIFactory(
+                        txid, 
+                        data, 
+                        encodeData(data),
+                      );
+                  });
+              }
+            };
+
+            load();
+            break;
+
+
+          case 'history':
+            if (localStorage.getItem("address")!== null) {
+                  const address = localStorage.getItem('address');
+
+                  (async () => {
+                    const arweave = Arweave.init({
+                      host: "arweave.net",
+                      port: 443,
+                      protocol: "https",
+                      timeout: 20000,
+                      logging: false
+                    });
+
+                    const txids = await arweave.arql({
+                      op: "and",
+                      expr1: {
+                        op: "equals",
+                        expr1: "from",
+                        expr2: address,
+                      },
+                      expr2: {
+                        op: 'equals',
+                        expr1: 'arweaveapp',
+                        expr2: 'arweavemathrepl',
+                      }
+                    });
+
+                    const max = (txids.length >= 50) ? 50 : txids.length;
+                    for (var i = 0; i < max; i++) {
+                      const txid = txids[i];
+
+                      arweave
+                        .transactions
+                        .getData(txid, {decode: true, string: true})
+                        .then((data) => {
+                          document
+                            .getElementById('history-page-data')
+                            .innerHTML += replUIFactory(
+                              txid, 
+                              data, 
+                              encodeData(data), 
+                              document.getElementById('update')
+                            );
+
+                        });
+                    }
+
+                  })();
+
+                } else {
+                  document.getElementById('message').innerHTML = '<h1>You need to upload your keyfile first.'
+                }
+
+            break;
+
+
+          case 'home':
+
+                const arweave = Arweave.init({
+                  host: 'arweave.net',
+                  port: 443,
+                  protocol: 'https',
+                  timeout: 20000,
+                  logging: false
+                });
+
+                if (localStorage.getItem('address')!== null) {
+                  document.getElementById('address').innerHTML = localStorage.getItem('address');
+                  document.getElementById('buttons').style.display = 'grid';
+                }
+
+                // arweave save data
+                async function saveReplData() {
+                  var key = await JSON.parse(localStorage.getItem('key'));
+                  var data = document.querySelector('.results').innerHTML || 'nothing to see here';
+                  let transaction = await arweave.createTransaction({
+                    data: data,
+                  }, key);
+
+                  transaction.addTag('arweaveapp', 'arweavemathrepl');
+
+                  await arweave.transactions.sign(transaction, key);
+                  const response = await arweave.transactions.post(transaction);
+
+                  console.log(response.status);
+                  if (response.status === 200) {
+                    document.getElementById('message').innerHTML = '<h1>Successfully saved your <span><a href="/history.html">data</a></span></h1>';
+                    setInterval(function(){
+                      document.getElementById('message').innerHTML = '';
+                    }, 20000);
+                  }
+                  document.querySelector('.results').innerHTML = ''
+                }
+
+                // arweave get wallet and save to localStorage
+                async function getWalletAddress(keyFileData) {
+                  localStorage.setItem('key', keyFileData);
+                  var wallet_file = await JSON.parse(keyFileData);
+                  arweave.wallets.jwkToAddress(wallet_file).then((address) => {
+                    document.getElementById('address').innerHTML = address;
+                    localStorage.setItem('address', address);
+                  });
+                }
+
+                // click event handlers
+                if (document.getElementById('upload')) {
+                  var uploadbtn = document.getElementById('upload');
+                  uploadbtn.onclick = function(event) {
+                    var file = document.getElementById('keyFile');
+                    var fr = new FileReader();
+                    fr.onload = function() {
+                      getWalletAddress(fr.result);
+                      document.getElementById('buttons').style.display = 'grid';
+                    };
+                    fr.readAsText(file.files[0]);
+                  }
+                } 
+
+                if (document.getElementById('save')) {
+                  var savebtn = document.getElementById('save');
+                  savebtn.onclick = async function(event) {
+                    savebtn.innerHTML = 'Saving...';
+                    await saveReplData();
+                    savebtn.innerHTML = 'Save';
+                  }
+                }
+                
+
+
+             break;
+
+        }
+
+
       }
 
-      // click event handlers
-      if (document.getElementById('upload')) {
-        var uploadbtn = document.getElementById('upload');
-        uploadbtn.onclick = function(event) {
-          var file = document.getElementById('keyFile');
-          var fr = new FileReader();
-          fr.onload = function() {
-            getWalletAddress(fr.result);
-            document.getElementById('buttons').style.display = 'grid';
-          };
-          fr.readAsText(file.files[0]);
-        }
-      } 
 
-      if (document.getElementById('save')) {
-        var savebtn = document.getElementById('save');
-        savebtn.onclick = async function(event) {
-          savebtn.innerHTML = 'Saving...';
-          await saveReplData();
-          savebtn.innerHTML = 'Save';
-        }
-      }
     </script>
   </body>
 </html>

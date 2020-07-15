@@ -498,6 +498,11 @@ function CommandLineEditor (params) {
       return;
     }
 
+    if (expr == 'load') {
+      load();
+      return;
+    }
+
     if (expr) {
       history.push(expr);
       historyIndex = history.length;

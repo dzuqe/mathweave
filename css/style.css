@@ -204,7 +204,7 @@ blockquote {
 }
 
 .tips {
-  color: #b4b4b4;
+  color: #262626;
   margin: 10px 0;
 }
 .tips ul {
@@ -283,8 +283,7 @@ h6 {
   display: none;
 }
 
-#page > a,
-#history > a
+a
 {
   color: #dc3912;
 }

@@ -28,7 +28,8 @@ function saveExpressions(data, elem) {
   var _default = (prevStore !== null) ? JSON.stringify(prevStore.concat(json)) : JSON.stringify(json);
   console.log(_default);
   localStorage.setItem('default', _default);
-  elem.innerHTML += '(Saved expressions to your session)<br/>';
+  elem.innerHTML = '(Saved expressions to your session)<br/>';
+  load();
 }
 
 function encodeData(data) {
