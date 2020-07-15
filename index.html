@@ -100,6 +100,7 @@
 
         switch(route) {
           case 'feed':
+            document.getElementById('feed-page-data').innerHTML = '';
             const load = async () => {
               const arweave = Arweave.init({
                 host: 'arweave.net',
@@ -140,9 +141,10 @@
 
           case 'history':
             if (localStorage.getItem("address")!== null) {
+                  document.getElementById('history-page-data').innerHTML = '';
                   const address = localStorage.getItem('address');
 
-                  (async () => {
+                  const loadHistory = async () => {
                     const arweave = Arweave.init({
                       host: "arweave.net",
                       port: 443,
@@ -169,6 +171,7 @@
                     for (var i = 0; i < max; i++) {
                       const txid = txids[i];
 
+
                       arweave
                         .transactions
                         .getData(txid, {decode: true, string: true})
@@ -185,7 +188,9 @@
                         });
                     }
 
-                  })();
+                  };
+
+                  loadHistory();
 
                 } else {
                   document.getElementById('message').innerHTML = '<h1>You need to upload your keyfile first.'
@@ -224,7 +229,7 @@
 
                   console.log(response.status);
                   if (response.status === 200) {
-                    document.getElementById('message').innerHTML = '<h1>Successfully saved your <span><a href="/history.html">data</a></span></h1>';
+                    document.getElementById('message').innerHTML = '<h1>Successfully saved your <span><a href="#history">data</a></span></h1>';
                     setInterval(function(){
                       document.getElementById('message').innerHTML = '';
                     }, 20000);
