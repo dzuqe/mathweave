@@ -1,0 +1,42 @@
+
+<!DOCTYPE html>
+<html>
+  <head>
+    <title>Feed</title>
+    <link rel="stylesheet" href="css/style.css">
+    <link rel="stylesheet" href="css/code.css">
+  </head>
+  <body>
+    <div id="page">
+      <div id="message"></div>
+      <div id="history"></div>
+    </div>
+    <script src="https://unpkg.com/arweave/bundles/web.bundle.js"></script>
+    <script>
+      if (localStorage.getItem('address')!== null) {
+        document.getElementById('message').innerHTML = '<h1>Feed</h1>';
+
+        (async () => {
+          const arweave = Arweave.init({
+            host: 'arweave.net',
+            port: 443,
+            protocol: 'https',
+            timeout: 20000,
+            logging: false
+          });
+
+          const txids = await arweave.arql({
+            op: 'equals',
+            expr1: 'arweaveapp',
+            expr2: 'arweavemathrepl',
+          });
+
+          console.log('TXIDS: ', txids);
+        })();
+
+      } else {
+        document.getElementById('message').innerHTML = '<h1>You need to upload your keyfile first.<br/> <a href="/">Home</a>'
+      }
+    </script>
+  </body>
+</html>
