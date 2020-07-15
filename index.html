@@ -5,13 +5,18 @@
     <link rel="stylesheet" href="css/style.css">
     <link rel="stylesheet" href="css/code.css">
     <link rel="stylesheet" href="css/commandline.css">
+    <meta charset="utf-8" />
   </head>
   <body>
     <div id="page">
+      <a href="/" class="selected">Home</a>
+      <a href="/history.html">History</a>
+      <a href="/feed.html">Feed</a>
       <div class="right">
         <div class="header" style="position: relative">
           <h1 style="padding: 0; margin:0; width: 20%; float:left">Arweave Math REPL</h1>
           <div style="float: right;" id="address">
+            <b>Key File</b><br/>
             <input id="keyFile" type="file" placeholder="Arweave Key File" style="float:left; width: 300px"/>
             <button id="upload" class="eval" style="float:left">Submit</button>
           </div>
@@ -27,10 +32,11 @@
             <li>Enter <b>"clear"</b> to clear history</li>
           </ul>
         </div>
+        <div id="message">
+
+        </div>
         <div id="buttons">
           <button class="eval" id="save">Save results</button>
-          <a href="/history.html" class="eval">See your history</a>
-          <a href="/feed.html" class="eval">See everyone's history</a>
         </div>
       </div>
     </div>
@@ -40,7 +46,6 @@
     <script src="js/commandline.js"></script>
     <script src="https://unpkg.com/arweave/bundles/web.bundle.js"></script>
     <script>
-
       const arweave = Arweave.init({
         host: 'arweave.net',
         port: 443,
@@ -56,9 +61,11 @@
 
       // arweave save data
       async function saveReplData() {
+        var key = await JSON.parse(localStorage.getItem('key'));
+        var data = document.querySelector('.results').innerHTML || 'nothing to see here';
         let transaction = await arweave.createTransaction({
-          data: document.querySelector('.results').innerHTML,
-        }, localStorage.getItem('key'));
+          data: data,
+        }, key);
 
         transaction.addTag('arweaveapp', 'arweavemathrepl');
 
@@ -66,17 +73,23 @@
         const response = await arweave.transactions.post(transaction);
 
         console.log(response.status);
+        if (response.status === 200) {
+          document.getElementById('message').innerHTML = '<h1>Successfully saved your <span><a href="/history.html">data</a></span></h1>';
+          setInterval(function(){
+            document.getElementById('message').innerHTML = '';
+          }, 20000);
+        }
+        document.querySelector('.results').innerHTML = ''
       }
 
       // arweave get wallet and save to localStorage
       async function getWalletAddress(keyFileData) {
         var wallet_file = await JSON.parse(keyFileData);
-
         arweave.wallets.jwkToAddress(wallet_file).then((address) => {
           document.getElementById('address').innerHTML = address;
           if (typeof(Storage) !== 'undefined') {
             localStorage.setItem('address', address);
-            localStorage.setItem('key', wallet_file);
+            localStorage.setItem('key', keyFileData);
           } else {
             console.log('Web Storage is not supported!');
           }
@@ -84,23 +97,27 @@
       }
 
       // click event handlers
-      var btn = document.getElementById('upload');
-      btn.onclick = function(event) {
-        var file = document.getElementById('keyFile');
-        var fr = new FileReader();
-        fr.onload = function() {
-          getWalletAddress(fr.result);
-          document.getElementById('buttons').style.display = 'grid';
-        };
+      if (document.getElementById('upload')) {
+        var uploadbtn = document.getElementById('upload');
+        uploadbtn.onclick = function(event) {
+          var file = document.getElementById('keyFile');
+          var fr = new FileReader();
+          fr.onload = function() {
+            getWalletAddress(fr.result);
+            document.getElementById('buttons').style.display = 'grid';
+          };
+          fr.readAsText(file.files[0]);
+        }
+      } 
 
-        fr.readAsText(file.files[0]);
+      if (document.getElementById('save')) {
+        var savebtn = document.getElementById('save');
+        savebtn.onclick = async function(event) {
+          savebtn.innerHTML = 'Saving...';
+          await saveReplData();
+          savebtn.innerHTML = 'Save';
+        }
       }
-
-      var save = document.getElementById('upload');
-      save.onclick = function(event) {
-        console.log('Save clicked');
-      }
-
     </script>
   </body>
 </html>

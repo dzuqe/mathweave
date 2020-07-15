@@ -5,16 +5,35 @@
     <title>Feed</title>
     <link rel="stylesheet" href="css/style.css">
     <link rel="stylesheet" href="css/code.css">
+    <link rel="stylesheet" href="css/commandline.css">
+    <meta charset="utf-8" />
   </head>
   <body>
     <div id="page">
-      <div id="message"></div>
+      <a href="/">Home</a>
+      <a href="/history.html">History</a>
+      <a href="/feed.html" class="selected">Feed</a>
+      <div id="message">
+        <h1>Feed <i>(latest 50)</i></h1>
+      </div>
       <div id="history"></div>
     </div>
     <script src="https://unpkg.com/arweave/bundles/web.bundle.js"></script>
     <script>
-      if (localStorage.getItem('address')!== null) {
-        document.getElementById('message').innerHTML = '<h1>Feed</h1>';
+        function replUIFactory(txid,data) {
+          const element = `
+            <a href="https://viewblock.io/arweave/tx/${txid}" target="_blank">${txid}</a>
+            <div id="commandline">
+              <div class="cle">
+                <div class="top-panel">
+                  <div class='results'>${data}
+                </div>
+              </div>
+            </div>
+          `;
+
+          return element;
+        }
 
         (async () => {
           const arweave = Arweave.init({
@@ -31,12 +50,18 @@
             expr2: 'arweavemathrepl',
           });
 
-          console.log('TXIDS: ', txids);
-        })();
+          const max = (txids.length >= 50) ? 50 : txids.length;
+          for (var i = 0; i < max; i++) {
+            const txid = txids[i];
 
-      } else {
-        document.getElementById('message').innerHTML = '<h1>You need to upload your keyfile first.<br/> <a href="/">Home</a>'
-      }
+            arweave
+              .transactions
+              .getData(txid, {decode: true, string: true})
+              .then((data) => {
+                document.getElementById('history').innerHTML += replUIFactory(txid, data);
+              });
+          }
+        })();
     </script>
   </body>
 </html>
